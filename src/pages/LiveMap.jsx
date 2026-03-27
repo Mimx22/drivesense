@@ -1,6 +1,6 @@
 import { useOutletContext, Link } from "react-router-dom";
 import MapComponent from "../components/MapComponent";
-import { ArrowLeft, Map as MapIcon, Maximize2, Navigation } from "lucide-react";
+import { ArrowLeft, Map as MapIcon, Maximize2, Navigation, Route, Clock, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LiveMap() {
@@ -54,6 +54,69 @@ export default function LiveMap() {
             <Maximize2 className="w-5 h-5" />
          </button>
       </div>
+
+      {/* Route Analytics Panel */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="absolute bottom-10 left-8 z-50 pointer-events-auto"
+      >
+        <div className="bg-white/90 dark:bg-[#121214]/90 backdrop-blur-md p-5 rounded-2xl border border-gray-100 dark:border-white/5 shadow-2xl min-w-[320px]">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Route className="w-4 h-4 text-emerald-500" />
+            Trip Analytics
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+                  <Navigation className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Distance</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">4.2 km</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-bold text-gray-400 uppercase">Avg Speed</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">45 km/h</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-blue-500" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Duration</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">18 mins</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-bold text-gray-400 uppercase">ETA</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">14:30 PM</div>
+              </div>
+            </div>
+
+            <div className="w-full h-[1px] bg-gray-100 dark:bg-white/5 my-2"></div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Risk Events</div>
+                  <div className="text-sm font-semibold text-amber-600 dark:text-amber-500">2 Detected</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Full Screen Map */}
       <div className="w-full h-full grayscale-[0.2] dark:grayscale-[0.5] contrast-[1.1]">

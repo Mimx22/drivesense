@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import MobileNav from "./MobileNav";
 
 export default function MainLayout() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -37,10 +38,13 @@ export default function MainLayout() {
       <Sidebar isDarkMode={isDarkMode} setIsDarkMode={handleThemeChange} />
       
       {/* Content Area */}
-      <main className="flex-1 relative overflow-auto h-screen custom-scrollbar">
+      <main className="flex-1 relative overflow-auto h-screen custom-scrollbar pb-24 lg:pb-0">
         {/* We pass isDarkMode down to the Outlet context if needed by children */}
         <Outlet context={{ isDarkMode, setIsDarkMode: handleThemeChange }} />
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileNav />
     </div>
   );
 }
