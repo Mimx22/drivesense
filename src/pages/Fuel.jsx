@@ -465,7 +465,7 @@ export default function Fuel() {
                   {form.start && form.destination && coords.start && coords.dest && !isCalculatingRoute && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                       <Link 
-                        to="/live-map"
+                        to="/map"
                         className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 font-bold py-4 rounded-3xl text-[14px] transition-all flex items-center justify-center gap-2 border border-amber-500/20"
                       >
                         <MapPin className="w-4 h-4" /> See Route on Map
