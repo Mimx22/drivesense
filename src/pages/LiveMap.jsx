@@ -1,10 +1,42 @@
 import { useOutletContext, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import MapComponent from "../components/MapComponent";
 import { ArrowLeft, Map as MapIcon, Maximize2, Navigation, Route, Clock, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LiveMap() {
   const { isDarkMode } = useOutletContext();
+  const [activeTrip, setActiveTrip] = useState(null);
+  const [routePath, setRoutePath] = useState(null);
+
+  useEffect(() => {
+    const tripData = localStorage.getItem("drivesense-active-trip");
+    if (tripData) {
+      try {
+        const trip = JSON.parse(tripData);
+        setActiveTrip(trip);
+
+        const fetchPath = async () => {
+          try {
+            const [startLon, startLat] = trip.startCoords;
+            const [destLon, destLat] = trip.destCoords;
+            const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${destLon},${destLat}?overview=full&geometries=geojson`);
+            const data = await res.json();
+            if (data.code === "Ok") {
+              // Convert GeoJSON [lon, lat] to Leaflet [lat, lon]
+              const path = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+              setRoutePath(path);
+            }
+          } catch (e) {
+            console.error("Path fetch error", e);
+          }
+        };
+        fetchPath();
+      } catch (e) {
+        console.error("Trip parse error", e);
+      }
+    }
+  }, []);
 
   return (
     <div className="fixed inset-0 lg:left-[280px] bg-white dark:bg-[#0A0A0B] z-40 transition-colors duration-500">
@@ -76,12 +108,16 @@ export default function LiveMap() {
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-gray-400 uppercase">Distance</div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">4.2 km</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {activeTrip ? `${activeTrip.distance} km` : '4.2 km'}
+                  </div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-[10px] font-bold text-gray-400 uppercase">Avg Speed</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">45 km/h</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {activeTrip ? '40 km/h' : '45 km/h'}
+                </div>
               </div>
             </div>
 
@@ -92,12 +128,16 @@ export default function LiveMap() {
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-gray-400 uppercase">Duration</div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">18 mins</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {activeTrip ? `${Math.round(activeTrip.duration / 60)} mins` : '18 mins'}
+                  </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-bold text-gray-400 uppercase">ETA</div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">14:30 PM</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase">Destination</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[100px]">
+                  {activeTrip ? activeTrip.destName.split(',')[0] : 'Ikeja'}
+                </div>
               </div>
             </div>
 
@@ -110,7 +150,9 @@ export default function LiveMap() {
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-gray-400 uppercase">Risk Events</div>
-                  <div className="text-sm font-semibold text-amber-600 dark:text-amber-500">2 Detected</div>
+                  <div className="text-sm font-semibold text-amber-600 dark:text-amber-500">
+                    {activeTrip ? 'Monitoring...' : '2 Detected'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -120,7 +162,7 @@ export default function LiveMap() {
 
       {/* Full Screen Map */}
       <div className="w-full h-full grayscale-[0.2] dark:grayscale-[0.5] contrast-[1.1]">
-        <MapComponent isDarkMode={isDarkMode} />
+        <MapComponent isDarkMode={isDarkMode} routePath={routePath} activeTrip={activeTrip} />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -16,6 +16,17 @@ const lagosRoute = [
   [6.5360, 3.3680],
   [6.5400, 3.3650],
 ];
+
+// Helper to auto-recenter map when the route changes
+function MapUpdater({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center.length === 2 && center[0]) {
+      map.flyTo(center, 14, { duration: 1.5 });
+    }
+  }, [center, map]);
+  return null;
+}
 
 // Custom glowing dot icon for the "vehicle" or tracker
 const createVehicleIcon = (isDarkMode) => L.divIcon({
@@ -93,22 +104,26 @@ const createWarningIcon = (isDarkMode) => L.divIcon({
   iconAnchor: [13, 13]
 });
 
-// Define Risk Events
-const riskEvents = [
+// Define Risk Events (Fallback only, on dynamic trips these are generated randomly or skipped)
+const fallbackRiskEvents = [
   { id: 1, position: lagosRoute[4], type: 'Hard Braking', severity: 'Medium Risk' },
   { id: 2, position: lagosRoute[7], type: 'Speeding', severity: 'High Risk' }
 ];
 
-export default function MapComponent({ isDarkMode = false }) {
+export default function MapComponent({ isDarkMode = false, routePath, activeTrip }) {
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
+
+  const currentRoute = routePath && routePath.length > 0 ? routePath : lagosRoute;
+  const isDynamic = !!activeTrip;
 
   // Animate the vehicle along the route
   useEffect(() => {
+    setCurrentPositionIndex(0);
     const interval = setInterval(() => {
-      setCurrentPositionIndex((prev) => (prev + 1) % lagosRoute.length);
+      setCurrentPositionIndex((prev) => (prev + 1) % currentRoute.length);
     }, 1500); // moves every 1.5 seconds smoothly
     return () => clearInterval(interval);
-  }, []);
+  }, [currentRoute.length]); // depends on currentRoute.length
 
   // Choose the beautiful CartoDB map themes
   const mapStyle = isDarkMode 
@@ -120,17 +135,18 @@ export default function MapComponent({ isDarkMode = false }) {
   return (
     <div className="w-full h-full relative z-0">
       <MapContainer 
-        center={[6.5300, 3.3740]} 
-        zoom={15} 
+        center={currentRoute[0]} 
+        zoom={14} 
         style={{ width: '100%', height: '100%', zIndex: 0, background: isDarkMode ? '#0A0A0B' : '#F5F5F7' }}
         zoomControl={false}
         attributionControl={false}
       >
+        <MapUpdater center={currentRoute[0]} />
         <TileLayer key={mapStyle} url={mapStyle} />
         
         {/* The Route Path */}
         <Polyline 
-          positions={lagosRoute} 
+          positions={currentRoute} 
           color={routeColor}
           weight={4}
           opacity={0.7}
@@ -139,34 +155,34 @@ export default function MapComponent({ isDarkMode = false }) {
 
         {/* The Moving Vehicle */}
         <Marker 
-          position={lagosRoute[currentPositionIndex]} 
+          position={currentRoute[currentPositionIndex] || currentRoute[0]} 
           icon={createVehicleIcon(isDarkMode)} 
         />
 
         {/* Start Point Marker */}
         <Marker 
-          position={lagosRoute[0]} 
+          position={currentRoute[0]} 
           icon={createStartIcon(isDarkMode)} 
         >
           <Popup className={isDarkMode ? 'dark-popup' : ''}>
             <div className="font-semibold text-[13px] text-gray-900">Trip Started</div>
-            <div className="text-[11px] text-gray-500">Ikeja City Mall</div>
+            <div className="text-[11px] text-gray-500 max-w-[150px] truncate">{isDynamic ? activeTrip.startName : 'Ikeja City Mall'}</div>
           </Popup>
         </Marker>
 
         {/* End Point Marker */}
         <Marker 
-          position={lagosRoute[lagosRoute.length - 1]} 
+          position={currentRoute[currentRoute.length - 1]} 
           icon={createEndIcon(isDarkMode)} 
         >
           <Popup className={isDarkMode ? 'dark-popup' : ''}>
             <div className="font-semibold text-[13px] text-gray-900">Destination</div>
-            <div className="text-[11px] text-gray-500">Murtala Muhammed Airport</div>
+            <div className="text-[11px] text-gray-500 max-w-[150px] truncate">{isDynamic ? activeTrip.destName : 'Murtala Muhammed Airport'}</div>
           </Popup>
         </Marker>
 
-        {/* Risk Event Markers */}
-        {riskEvents.map((event) => (
+        {/* Risk Event Markers (Only show on fallback route for demo) */}
+        {!isDynamic && fallbackRiskEvents.map((event) => (
           <Marker 
             key={event.id}
             position={event.position} 
@@ -174,7 +190,7 @@ export default function MapComponent({ isDarkMode = false }) {
           >
             <Popup className={isDarkMode ? 'dark-popup' : ''}>
               <div className="font-semibold text-[13px] text-amber-600 flex items-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 {event.type}
               </div>
               <div className="text-[11px] text-gray-500 mt-0.5">{event.severity}</div>

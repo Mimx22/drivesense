@@ -77,9 +77,21 @@ export default function Fuel() {
       
       if (data.code === "Ok") {
         const distanceInKm = data.routes[0].distance / 1000;
+        const durationInSec = data.routes[0].duration;
+        
         setForm(prev => ({
           ...prev,
           distance: distanceInKm.toFixed(2)
+        }));
+
+        // Keep global trip state synced for the Map Page
+        localStorage.setItem("drivesense-active-trip", JSON.stringify({
+          startCoords: [startLon, startLat],
+          destCoords: [destLon, destLat],
+          startName: form.start,
+          destName: form.destination,
+          distance: distanceInKm.toFixed(1),
+          duration: durationInSec
         }));
       }
     } catch (err) {
@@ -445,6 +457,20 @@ export default function Fuel() {
                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center font-bold text-emerald-500 text-[14px]">
                         Smart trip saved successfully! 🎉
                      </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* View on Map Link */}
+                <AnimatePresence>
+                  {form.start && form.destination && coords.start && coords.dest && !isCalculatingRoute && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                      <Link 
+                        to="/live-map"
+                        className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 font-bold py-4 rounded-3xl text-[14px] transition-all flex items-center justify-center gap-2 border border-amber-500/20"
+                      >
+                        <MapPin className="w-4 h-4" /> See Route on Map
+                      </Link>
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </form>
