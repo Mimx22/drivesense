@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { addTrip } from "../services/tripService";
 import { db } from "../firebaseConfig";
-import { Droplet, Activity, Navigation, CheckCircle2, AlertCircle, ArrowLeft, Fuel as FuelIcon, Gauge, Banknote, Wind, MapPin, Search, Loader2, Info } from "lucide-react";
+import { Droplet, Activity, Navigation, CheckCircle2, AlertCircle, ArrowLeft, Fuel as FuelIcon, Gauge, Banknote, Wind, MapPin, Search, Loader2, Info, Crosshair } from "lucide-react";
 import { Link, useOutletContext } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { smartFuelEngine } from "../utils/smartFuelEngine";
@@ -13,9 +13,48 @@ export default function Fuel() {
   const [error, setError] = useState(null);
   
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [searchResults, setSearchResults] = useState({ start: [], dest: [] });
   const [showDropdown, setShowDropdown] = useState({ start: false, dest: false });
   const [coords, setCoords] = useState({ start: null, dest: null });
+
+  // Use device GPS + Photon reverse geocode to fill Start Point
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://photon.komoot.io/reverse?lon=${longitude}&lat=${latitude}&limit=1`);
+          const data = await res.json();
+          if (data.features && data.features.length > 0) {
+            const feature = data.features[0];
+            const props = feature.properties;
+            const name = [props.name, props.street, props.city].filter(Boolean).join(', ');
+            setForm(prev => ({ ...prev, start: name }));
+            setCoords(prev => ({ ...prev, start: [longitude, latitude] }));
+          } else {
+            setForm(prev => ({ ...prev, start: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` }));
+            setCoords(prev => ({ ...prev, start: [longitude, latitude] }));
+          }
+        } catch (e) {
+          console.error('Reverse geocode failed:', e);
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+        alert("Could not get your location. Please allow location access and try again.");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const [form, setForm] = useState({
     mode: "distance", // "distance" or "fuel"
@@ -221,7 +260,7 @@ export default function Fuel() {
                 {/* Route Section */}
                 {form.mode === "distance" && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex gap-4 relative">
+                    <div className="flex flex-col md:flex-row gap-4 relative">
                       {/* Start Point */}
                       <div className="flex-1 space-y-3 relative">
                         <label className="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 dark:text-gray-600 px-1">Start Point</label>
@@ -231,13 +270,25 @@ export default function Fuel() {
                           </div>
                           <input
                             type="text"
-                            placeholder="Search location..."
-                            className="w-full bg-gray-50 dark:bg-[#1C1C1F] rounded-3xl py-5 pl-16 pr-8 text-[14px] font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 transition-all shadow-sm"
+                            placeholder="Search or use current location..."
+                            className="w-full bg-gray-50 dark:bg-[#1C1C1F] rounded-3xl py-5 pl-16 pr-14 text-[14px] font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 transition-all shadow-sm"
                             value={form.start}
                             onChange={(e) => searchLocation(e.target.value, 'start')}
                             onFocus={() => form.start.length > 2 && setShowDropdown(p => ({ ...p, start: true }))}
                             onBlur={() => setTimeout(() => setShowDropdown(p => ({ ...p, start: false })), 200)}
                           />
+                          {/* Current Location Button */}
+                          <button
+                            type="button"
+                            onClick={handleUseCurrentLocation}
+                            disabled={isLocating}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 flex items-center justify-center text-emerald-500 transition-colors disabled:opacity-50"
+                            title="Use my current location"
+                          >
+                            {isLocating
+                              ? <Loader2 className="w-4 h-4 animate-spin" />
+                              : <Crosshair className="w-4 h-4" />}
+                          </button>
                         </div>
                         <AnimatePresence>
                           {showDropdown.start && searchResults.start.length > 0 && (
